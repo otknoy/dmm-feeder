@@ -22,30 +22,51 @@ func main() {
 	feed(items)
 }
 
+func newPool() *redis.Pool {
+	return &redis.Pool{
+		MaxIdle:   80,
+		MaxActive: 1000,
+		Dial: func() (redis.Conn, error) {
+			c, err := redis.Dial("tcp", ":6379")
+			if err != nil {
+				panic(err.Error())
+			}
+			return c, err
+		},
+	}
+}
+
 func subscribe(dmmItems chan<- model.DmmItem) {
 	log.Println("Subscriber")
 
-	conn, _ := redis.Dial("tcp", "localhost:6379")
-	psc := redis.PubSubConn{Conn: conn}
-	psc.Subscribe("dmm-items")
+	pool := newPool()
+
 	for {
-		switch v := psc.Receive().(type) {
-		case redis.Message:
-			var item model.DmmItem
-			if err := json.Unmarshal(v.Data, &item); err != nil {
-				fmt.Println(err)
+		conn := pool.Get()
+		psc := redis.PubSubConn{Conn: conn}
+
+		psc.Subscribe("dmm-items")
+
+		for conn.Err() == nil {
+			switch v := psc.Receive().(type) {
+			case redis.Message:
+				var item model.DmmItem
+				if err := json.Unmarshal(v.Data, &item); err != nil {
+					fmt.Println(err)
+				}
+
+				dmmItems <- item
+
+				// fmt.Println(string(v.Data))
+				// fmt.Println(item.Title)
+				// fmt.Printf("%s: message: %s\n", v.Channel, v.Data)
+			case redis.Subscription:
+				fmt.Printf("%s: %s %d\n", v.Channel, v.Kind, v.Count)
+			case error:
+				fmt.Println(v)
 			}
-
-			dmmItems <- item
-
-			// fmt.Println(string(v.Data))
-			// fmt.Println(item.Title)
-			// fmt.Printf("%s: message: %s\n", v.Channel, v.Data)
-		case redis.Subscription:
-			fmt.Printf("%s: %s %d\n", v.Channel, v.Kind, v.Count)
-		case error:
-			fmt.Println(v)
 		}
+		conn.Close()
 	}
 }
 
