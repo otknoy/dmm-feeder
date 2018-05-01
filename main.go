@@ -44,7 +44,7 @@ func subscribe(dmmItems chan<- model.DmmItem) {
 		case redis.Subscription:
 			fmt.Printf("%s: %s %d\n", v.Channel, v.Kind, v.Count)
 		case error:
-			fmt.Println("error")
+			fmt.Println(v)
 		}
 	}
 }
