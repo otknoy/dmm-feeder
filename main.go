@@ -41,6 +41,8 @@ func subscribe(dmmItems chan<- model.DmmItem) {
 
 	pool := newPool()
 
+	count := 0
+
 	for {
 		conn := pool.Get()
 		psc := redis.PubSubConn{Conn: conn}
@@ -56,6 +58,9 @@ func subscribe(dmmItems chan<- model.DmmItem) {
 				}
 
 				dmmItems <- item
+
+				count++
+				log.Println(count)
 
 				// fmt.Println(string(v.Data))
 				// fmt.Println(item.Title)
