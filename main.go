@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/garyburd/redigo/redis"
@@ -29,7 +28,7 @@ func newPool() *redis.Pool {
 		Dial: func() (redis.Conn, error) {
 			c, err := redis.Dial("tcp", ":6379")
 			if err != nil {
-				panic(err.Error())
+				log.Fatal(err)
 			}
 			return c, err
 		},
@@ -37,8 +36,6 @@ func newPool() *redis.Pool {
 }
 
 func subscribe(dmmItems chan<- model.DmmItem) {
-	log.Println("Subscriber")
-
 	pool := newPool()
 
 	count := 0
@@ -54,21 +51,17 @@ func subscribe(dmmItems chan<- model.DmmItem) {
 			case redis.Message:
 				var item model.DmmItem
 				if err := json.Unmarshal(v.Data, &item); err != nil {
-					fmt.Println(err)
+					log.Print(err)
 				}
 
 				dmmItems <- item
 
 				count++
 				log.Println(count)
-
-				// fmt.Println(string(v.Data))
-				// fmt.Println(item.Title)
-				// fmt.Printf("%s: message: %s\n", v.Channel, v.Data)
 			case redis.Subscription:
-				fmt.Printf("%s: %s %d\n", v.Channel, v.Kind, v.Count)
+				log.Printf("%s: %s %d\n", v.Channel, v.Kind, v.Count)
 			case error:
-				fmt.Println(v)
+				log.Println(v)
 			}
 		}
 		conn.Close()
