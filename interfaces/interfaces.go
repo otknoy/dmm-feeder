@@ -2,6 +2,7 @@ package interfaces
 
 import "github.com/otknoy/dmm-feeder/model"
 
-type SolrAdder interface {
-	Add(model.Item) error
+type SolrIndexUpdater interface {
+	AddItem(model.Item) error
+	Commit() error
 }

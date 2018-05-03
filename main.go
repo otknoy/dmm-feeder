@@ -72,6 +72,7 @@ func process(dmmItems <-chan model.DmmItem, items chan<- model.Item) {
 	ips := service.NewItemProcessService()
 
 	for dmmItem := range dmmItems {
+		log.Print("process")
 		item := ips.Process(dmmItem)
 		items <- item
 	}
@@ -79,12 +80,18 @@ func process(dmmItems <-chan model.DmmItem, items chan<- model.Item) {
 }
 
 func feed(items <-chan model.Item) {
-	solr := infrastructure.NewSolrRepository()
+	solr := infrastructure.NewSolrIndexUpdater("otknoy.dip.jp", 80, "items")
+	count := 0
 	for item := range items {
 		log.Println(item.ID)
-		err := solr.Add(item)
+		err := solr.AddItem(item)
 		if err != nil {
 			log.Fatalln(err)
+		}
+
+		count++
+		if count%1000 == 0 {
+			solr.Commit()
 		}
 	}
 }
