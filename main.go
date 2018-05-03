@@ -94,4 +94,5 @@ func feed(items <-chan model.Item) {
 			solr.Commit()
 		}
 	}
+	solr.Commit()
 }
